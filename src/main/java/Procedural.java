@@ -7,6 +7,80 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Procedural {
 
+    static class Story {
+        static final String DASH_DIVIDER = "--------------------------\n";
+        static final String STORY_POINT = "\n\n";
+        static final String INDENT = "  ";
+        static final String INDENT2X = "    ";
+        static final String INDENT3X = "      ";
+        static final String INDENT4X = "        ";
+
+        StringBuilder story = new StringBuilder();
+
+        void grammarStory() {
+            story.append("Исходная грамматика\n")
+                    .append(DASH_DIVIDER);
+            grammarStoryInternal();
+            story.append(STORY_POINT);
+        }
+
+        void grammarStoryInternal() {
+            for(String key : GRAMMAR.keySet()) {
+                for(String rule : GRAMMAR.get(key)) {
+                    story.append("Правило " + ACTION_RULES.get(new Pair<String, String>(key, rule)) + ": " + key + "->" + rule + ";\n");
+                }
+            }
+        }
+
+        public String tell() {
+            return story.toString();
+        }
+
+        void enhancedGrammarStory() {
+            story.append("Пополненная грамматика\n")
+                    .append(DASH_DIVIDER)
+                    .append("Правило 0: " + NEW_AXIOM + "->" + AXIOM + ";\n");
+            grammarStoryInternal();
+            story.append(STORY_POINT);
+        }
+
+        void firstStoryIntro() {
+            story.append("Вычисление функции FIRST1\n")
+                    .append(DASH_DIVIDER);
+        }
+
+        void firstStoryNextIteration(int i) {
+            story.append("На итерации " + i + ":\n");
+
+            for(Map.Entry<String, List<String>> entry : FIRST.entrySet()) {
+                story.append(INDENT + "Для " + entry.getKey() + ": " + entry.getValue() + "\n");
+            }
+        }
+
+        void endCuttingStory() {
+            story.append(STORY_POINT);
+        }
+
+        public void q0StoryIntro() {
+            story.append("Начальное состояние q0:\n")
+                    .append(DASH_DIVIDER);
+        }
+
+        public void q0JustInitialized(Situation initialSituation) {
+            story.append("Незамкнутое q0: " + initialSituation + "\n");
+        }
+
+        public void q0InClosure() {
+            story.append("Замыкание q0: " + Q0 + "\n")
+                    .append(STORY_POINT);
+        }
+
+        public void qnStoryIntro() {
+            story.append("Вычисление состояний" + "\n")
+                    .append(DASH_DIVIDER);
+        }
+    }
+
     static interface IAction { int getI();}
 
     static class Reduce implements IAction {
@@ -77,7 +151,7 @@ public class Procedural {
     static class NullSituation implements ISituation {
         public void closure() {}
         @Override public boolean equals(Object b) {return b instanceof NullSituation;}
-        @Override public String toString() {return "[null situation]";}
+        @Override public String toString() {return "0";}
     }
 
     static class Situation implements ISituation {
@@ -191,6 +265,8 @@ public class Procedural {
 
     static Map<Pair<ISituation, String>, IAction> ACTION_TABLE = new LinkedHashMap<Pair<ISituation, String>, IAction>();
 
+    static Story STORY = new Story();
+
     public static void main(String ... args) throws FileNotFoundException {
         Scanner fr = new Scanner(new File("input.txt"));
 
@@ -216,9 +292,9 @@ public class Procedural {
             }
             GRAMMAR.put(tokens[0], rules);
         }
-
-
+        STORY.grammarStory();
         enhanceGrammar();
+        STORY.enhancedGrammarStory();
         valuableSymbols();
         computeFirst();
 
@@ -234,6 +310,7 @@ public class Procedural {
         }
 
         // uncomment to debug : System.out.println(FIRST1("SS"));
+        System.out.println(STORY.tell());
     }
 
     private static void valuableSymbols() {
@@ -291,6 +368,9 @@ public class Procedural {
     }
 
     private static void computeqN() {
+
+        STORY.qnStoryIntro();
+
         int nSituation = 0;
         while (!O.isEmpty()) {
             ISituation head = O.poll();
@@ -341,7 +421,9 @@ public class Procedural {
     }
 
     private static void computeq0() {
-        // Take a sole rule with new axiom RHS
+        STORY.q0StoryIntro();
+
+        // Take a sole rule with new axiom LHS
 
         String rhs = ENHANCED_GRAMMAR.get(NEW_AXIOM).get(0);
 
@@ -355,11 +437,15 @@ public class Procedural {
 
         initialSituation.set.add(firstRuleConfiguration);
 
+        STORY.q0JustInitialized(initialSituation);
+
         initialSituation.closure();
 
         Q0 = initialSituation;
 
         Q0.closure();
+
+        STORY.q0InClosure();
 
         O.add(Q0);
     }
@@ -368,6 +454,8 @@ public class Procedural {
         Cloner cloner = new Cloner();
         HashMap<String, List<String>> previous = new HashMap<String, List<String>>();
 
+        STORY.firstStoryIntro();
+
         for(String key : ENHANCED_GRAMMAR.keySet()) {
             FIRST.put(key, new ArrayList<String>());
         }
@@ -375,6 +463,7 @@ public class Procedural {
         while(!previous.equals(FIRST)) {
             previous.clear();
             previous = cloner.deepClone(FIRST);
+            STORY.firstStoryNextIteration(i); i++;
             // uncomment to debug : System.out.println("Next iteration for first");
             // uncomment to debug : System.out.println("Previous step result: " + previous);
             for(String key : ENHANCED_GRAMMAR.keySet()) {
@@ -408,7 +497,7 @@ public class Procedural {
             // uncomment to debug : System.out.println("After iteration:" + previous);
         }
 
-
+        STORY.endCuttingStory();
     }
 
     private static Set intersection(String rule, Set<String> strings) {

@@ -1,6 +1,7 @@
+import com.rits.cloning.Cloner;
+
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.security.KeyManagementException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -87,7 +88,7 @@ public class Procedural {
         }
 
         public void closure() {
-            System.out.println("\n\n           Before closure: " + this);
+            // uncomment to debug : System.out.println("\n\n           Before closure: " + this);
 
             Set<Configuration> additional = new LinkedHashSet<Configuration>();
 
@@ -118,7 +119,7 @@ public class Procedural {
                 set.addAll(additional);
             }
 
-            System.out.println("           After closure: " + this + "\n\n");
+            // uncomment to debug : System.out.println("           After closure: " + this + "\n\n");
 
         }
 
@@ -226,13 +227,13 @@ public class Procedural {
         computeqN();
 
         computeAction();
-        System.out.println(ACTION_TABLE);
+        // uncomment to debug : System.out.println(ACTION_TABLE);
 
         for(Map.Entry<Pair<ISituation, String>, IAction> entry : ACTION_TABLE.entrySet()) {
-            System.out.println("q"+SITUATION_NUMBERS.get(entry.getKey().first) + "," + entry.getKey().second + "==" + entry.getValue());
+            // uncomment to debug : System.out.println("q"+SITUATION_NUMBERS.get(entry.getKey().first) + "," + entry.getKey().second + "==" + entry.getValue());
         }
 
-        System.out.println(FIRST1("SS"));
+        // uncomment to debug : System.out.println(FIRST1("SS"));
     }
 
     private static void valuableSymbols() {
@@ -307,7 +308,7 @@ public class Procedural {
         int i=0;
         C.remove(new NullSituation());
         for(ISituation situation : C) {
-            System.out.println("q" + i + "=" + situation);
+            // uncomment to debug : System.out.println("q" + i + "=" + situation);
             i++;
         }
     }
@@ -364,23 +365,23 @@ public class Procedural {
     }
 
     private static void computeFirst() {
+        Cloner cloner = new Cloner();
         HashMap<String, List<String>> previous = new HashMap<String, List<String>>();
 
         for(String key : ENHANCED_GRAMMAR.keySet()) {
             FIRST.put(key, new ArrayList<String>());
         }
         int i = 0;
-        while(i < 6) {
+        while(!previous.equals(FIRST)) {
             previous.clear();
-            previous.putAll((Map<String, List<String>>)FIRST.clone());
-
-            System.out.println("Next iteration for first");
-            System.out.println("Previous step result: " + previous);
+            previous = cloner.deepClone(FIRST);
+            // uncomment to debug : System.out.println("Next iteration for first");
+            // uncomment to debug : System.out.println("Previous step result: " + previous);
             for(String key : ENHANCED_GRAMMAR.keySet()) {
                 List<String> rules = ENHANCED_GRAMMAR.get(key);
                 for(String rule : rules) {
-                    System.out.println("-----------------------");
-                    System.out.println("--For rule: {" + key + "->" + rule + "} (iteration " + i + ")");
+                    // uncomment to debug : System.out.println("-----------------------");
+                    // uncomment to debug : System.out.println("--For rule: {" + key + "->" + rule + "} (iteration " + i + ")");
                     Set intersection = intersection(rule, ENHANCED_GRAMMAR.keySet());
                     List<String> substitutions = new ArrayList<String>();
                     if(intersection.isEmpty()) {
@@ -390,7 +391,7 @@ public class Procedural {
                         substitutions = substitute(rule, containingNonTerminals, previous);
                     }
 
-                    System.out.println("---New substutions for {" + key + "->" + rule + "} produce " + substitutions);
+                    // uncomment to debug : System.out.println("---New substutions for {" + key + "->" + rule + "} produce " + substitutions);
 
                     List<String> newFirst = cutToFirst(substitutions);
                     List<String> container = FIRST.get(key);
@@ -403,9 +404,8 @@ public class Procedural {
                     FIRST.put(key, container); // redundant
                 }
             }
-            System.out.println("After iteration:" + FIRST);
-            System.out.println("After iteration:" + previous);
-            i++;
+            // uncomment to debug : System.out.println("After iteration:" + FIRST);
+            // uncomment to debug : System.out.println("After iteration:" + previous);
         }
 
 
@@ -438,7 +438,7 @@ public class Procedural {
     }
 
     private static List<String> substitute(String rule, List<String> containingNonTerminals, HashMap<String, List<String>> previous) {
-        System.out.println("----Inside substitution loop: " + containingNonTerminals);
+        // uncomment to debug : System.out.println("----Inside substitution loop: " + containingNonTerminals);
 
         Map<String, List<String>>  copy = new HashMap<String, List<String>>(previous);
         List<String> terminalsCopy = new ArrayList<String>(containingNonTerminals);
@@ -455,7 +455,7 @@ public class Procedural {
     }
 
     private static void sub0(List<String> result, Map<String, List<String>> copy, List<String> containingNonTerminals, String rule) {
-        System.out.println("------Inner s. loop " + copy + ", res:" + result + ", t:" + containingNonTerminals + ", rule: " + rule);
+        // uncomment to debug : System.out.println("------Inner s. loop " + copy + ", res:" + result + ", t:" + containingNonTerminals + ", rule: " + rule);
         if(containingNonTerminals.isEmpty()) {
             result.add(rule);
             return;

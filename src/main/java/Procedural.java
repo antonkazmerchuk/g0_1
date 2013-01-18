@@ -90,33 +90,33 @@ public class Procedural {
             System.out.println("\n\n           Before closure: " + this);
 
             Set<Configuration> additional = new LinkedHashSet<Configuration>();
-            for(Configuration config : set) {
-                String pseudoContext = "~" + config.rhs;
-                String context = pseudoContext.split("\\.").length > 1 ? pseudoContext.split("\\.")[1].substring(0, 1) : null;
-                String fullContext = context == null ? null : pseudoContext.split("\\.")[1];
-                if(context != null && ENHANCED_GRAMMAR.get(context) != null) {
-                    // Commented out, still may be useful but feels wrong
-//                    String fIRSTContext = String.valueOf((context + config.der).charAt(0));
-//                    List<String> first = FIRST.get(fIRSTContext);
-                    List<String> first1 = FIRST.get(fullContext.substring(0, 1));
-                    List<String> first = new ArrayList<String>();
-                    for(String f : first1) {
-                        first.add((f + fullContext.substring(1) +  config.der).length() > 0 ? (f + fullContext.substring(1) +  config.der).substring(0,1) : "");
-                    }
-                    List<String> rules = ENHANCED_GRAMMAR.get(context);
 
-                    for (String first0 : first) {
-                        for(String rule : rules) {
-                            Configuration newc = new Configuration();
-                            newc.lhs = context;
-                            newc.rhs = "." + rule;
-                            newc.der = first0;
-                            additional.add(newc);
+            while(true) {
+                Set<Configuration> additional0 = new LinkedHashSet<Configuration>();
+                for(Configuration config : set) {
+                    String pseudoContext = "~" + config.rhs;
+                    String context = pseudoContext.split("\\.").length > 1 ? pseudoContext.split("\\.")[1].substring(0, 1) : null;
+                    String fullContext = context == null ? null : pseudoContext.split("\\.")[1];
+                    if(context != null && ENHANCED_GRAMMAR.get(context) != null) {
+                        List<String> first = FIRST1(fullContext.substring(1) + config.der);
+                        List<String> rules = ENHANCED_GRAMMAR.get(context);
+
+                        for (String first0 : first) {
+                            for(String rule : rules) {
+                                Configuration newc = new Configuration();
+                                newc.lhs = context;
+                                newc.rhs = "." + rule;
+                                newc.der = first0;
+                                additional0.add(newc);
+                            }
                         }
                     }
                 }
+                additional0.removeAll(additional);
+                if(additional0.isEmpty()) break;
+                else additional.addAll(additional0);
+                set.addAll(additional);
             }
-            set.addAll(additional);
 
             System.out.println("           After closure: " + this + "\n\n");
 
@@ -275,7 +275,7 @@ public class Procedural {
                         ACTION_TABLE.put(new Pair<ISituation, String>(situation, symbol), new Reduce(reduceRule));
                         break;
                     } else if(configuration.rhs.split("\\.").length == 2
-                            && !"".equals(configuration.rhs.split("\\.")[0])
+                            /*&& !"".equals(configuration.rhs.split("\\.")[0])*/
                             && null == ENHANCED_GRAMMAR.get(configuration.rhs.split("\\.")[1].substring(0, 1))
                             && FIRST1(configuration.rhs.split("\\.")[1] + configuration.der).contains(symbol)) {
                         isError = false;

@@ -2,6 +2,8 @@ import com.rits.cloning.Cloner;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -61,23 +63,109 @@ public class Procedural {
             story.append(STORY_POINT);
         }
 
-        public void q0StoryIntro() {
+        void q0StoryIntro() {
             story.append("Начальное состояние q0:\n")
                     .append(DASH_DIVIDER);
         }
 
-        public void q0JustInitialized(Situation initialSituation) {
+        void q0JustInitialized(Situation initialSituation) {
             story.append("Незамкнутое q0: " + initialSituation + "\n");
         }
 
-        public void q0InClosure() {
+        void q0InClosure() {
             story.append("Замыкание q0: " + Q0 + "\n")
                     .append(STORY_POINT);
         }
 
-        public void qnStoryIntro() {
+        void qnStoryIntro() {
             story.append("Вычисление состояний" + "\n")
                     .append(DASH_DIVIDER);
+        }
+
+        void queuesPrior() {
+            story.append("Перед итерацией, очереди O и С такие:\n");
+            ocInternal();
+
+        }
+
+        void ocInternal() {
+            story.append("O={");
+            for(ISituation situation : O) {
+                situationNumberInternal(situation);
+            }
+            story.append("};\n")
+                    .append("C={");
+
+            for(ISituation situation : C) {
+                situationNumberInternal(situation);
+            }
+
+            story.append("};\n");
+        }
+
+        void situationNumberInternal(ISituation situation) {
+            if (situation instanceof Situation)
+                story.append("q" + SITUATION_NUMBERS.get(situation) + ", ");
+            else story.append(situation.toString() + ", ");
+        }
+
+        public void queuesJustAfter() {
+            story.append("Сразу после обмена, очереди O и С такие:\n");
+            ocInternal();
+
+        }
+
+        public void headSituationClarified(ISituation head) {
+            story.append(INDENT + "Ситуация, перешедшая из О в С: ")
+                    .append("q" + SITUATION_NUMBERS.get(head) + "=" + head + "\n");
+        }
+
+        public void moveWithSymbol(String s, ISituation iSituation) {
+            story.append(INDENT2X + "При взаимодействии с символом " + s)
+                    .append(" она превращается в:\n")
+                    .append(INDENT2X + iSituation.toString() + "\n");
+        }
+
+        public void theyStartClosing() {
+            story.append(INDENT2X + "Далее, они начинают замыкаться, соответственно:\n");
+        }
+
+        public void closing(ISituation situation) {
+            story.append(INDENT2X + "Замыкание(" + situation + ") = ");
+        }
+
+        public void closed(ISituation situation) {
+            story.append(situation + "\n");
+        }
+
+        public void isNew(ISituation situation) {
+            if(situation instanceof NullSituation)
+                story.append(INDENT3X + "Такой ситуации прежде не было, это нулевая ситуация, кладём её в О\n");
+            else story.append(INDENT3X + "Такой ситуации прежде не было, называем её q"
+                    + SITUATION_NUMBERS.get(situation) + ", кладём в О\n");
+        }
+
+        void actionIntro() {
+            story.append("Таблица действий:")
+                    .append(DASH_DIVIDER)
+                    .append("На таблицу действий не хватило времени, выводится как есть:\n");
+        }
+
+        void action() {
+            for(Map.Entry<Pair<ISituation, String>, IAction> entry : ACTION_TABLE.entrySet()) {
+                story.append("q" + SITUATION_NUMBERS.get(entry.getKey().first) + "," + entry.getKey().second + "==" + entry.getValue() + "\n");
+            }
+            story.append("\n...\n");
+            story.append("А также выводится таблица g, тоже по-злому:\n");
+
+            int i=0;
+            for(ISituation situation : C) {
+                story.append("q" + i + "=" + situation + "\n");
+                i++;
+            }
+
+            story.append("\n:)");
+            endCuttingStory();
         }
     }
 
@@ -262,12 +350,13 @@ public class Procedural {
     static Queue<ISituation> C = new LinkedBlockingQueue<ISituation>();
 
     static Map<ISituation, Integer> SITUATION_NUMBERS = new LinkedHashMap<ISituation, Integer>();
+    static int SITUATION_COUNTER = 0;
 
     static Map<Pair<ISituation, String>, IAction> ACTION_TABLE = new LinkedHashMap<Pair<ISituation, String>, IAction>();
 
     static Story STORY = new Story();
 
-    public static void main(String ... args) throws FileNotFoundException {
+    public static void main(String ... args) throws IOException {
         Scanner fr = new Scanner(new File("input.txt"));
 
         AXIOM = fr.nextLine();
@@ -310,7 +399,10 @@ public class Procedural {
         }
 
         // uncomment to debug : System.out.println(FIRST1("SS"));
-        System.out.println(STORY.tell());
+//        System.out.println(STORY.tell());
+        FileWriter fw = new FileWriter(new File("output.txt"), false);
+        fw.write(STORY.tell());
+        fw.close();
     }
 
     private static void valuableSymbols() {
@@ -328,6 +420,7 @@ public class Procedural {
     }
 
     private static void computeAction() {
+        STORY.actionIntro();
         for(String symbol : VALUABLE_SYMBOLS) {
             for(ISituation situation : C) {
                 boolean isError = true;
@@ -365,26 +458,37 @@ public class Procedural {
                 if(isError) ACTION_TABLE.put(new Pair<ISituation, String>(situation, symbol), Action.ERROR);
             }
         }
+        STORY.action();
+
     }
 
     private static void computeqN() {
 
         STORY.qnStoryIntro();
 
-        int nSituation = 0;
         while (!O.isEmpty()) {
+
+            STORY.queuesPrior();
             ISituation head = O.poll();
-            if(!(head instanceof NullSituation)) SITUATION_NUMBERS.put(head, nSituation++);
             C.add(head);
+
+            STORY.queuesJustAfter();
             List<ISituation> moved = move(head);
 
+            STORY.theyStartClosing();
             for(ISituation situation : moved) {
+                STORY.closing(situation);
                 situation.closure();
+                STORY.closed(situation);
                 if(!O.contains(situation) && !C.contains(situation)) {
+                    if(!(head instanceof NullSituation)) SITUATION_NUMBERS.put(situation, SITUATION_COUNTER++);
+                    STORY.isNew(situation);
                     O.add(situation);
                 }
             }
         }
+
+        STORY.endCuttingStory();
         int i=0;
         C.remove(new NullSituation());
         for(ISituation situation : C) {
@@ -394,6 +498,7 @@ public class Procedural {
     }
 
     private static List<ISituation> move(ISituation head) {
+        STORY.headSituationClarified(head);
         List<ISituation> result = new ArrayList<ISituation>();
         for(String s : DISTINCT_SYMBOLS) {
             if(head instanceof NullSituation) {result.add(new NullSituation());}
@@ -415,6 +520,7 @@ public class Procedural {
                 }
                 if(news == null) {news = new NullSituation();}
                 result.add(news);
+                STORY.moveWithSymbol(s, result.get(result.size() - 1));
             }
         }
         return result;
@@ -448,6 +554,7 @@ public class Procedural {
         STORY.q0InClosure();
 
         O.add(Q0);
+        SITUATION_NUMBERS.put(Q0, 0);
     }
 
     private static void computeFirst() {
